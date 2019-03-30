@@ -14,6 +14,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -27,13 +28,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class BulkRead {
 
-	public final String access_token = "EAAFNsBlN4joBABxNuw8kvaIWwEJrDYbC8ckASEypxPfCVdK5RmPEPotIXedp4z6J1J1YLEKPDuWhZCrIlZCKZCPNJm85TmAYYFIZCCz2ohsxhbvqDKo4RGk5icZCpsc43wZCOvyWlJigIalx3k7cOmuS6ZAok3wTTWxbr1kkZChvHOZBixeZA67KZBHGGtPBXlZA5uM1Mw6gOdHLXkKmHfbsdqtEnoOCQ6ZBwzIZAIBag5XQHAfgZDZD";
+	public final String access_token = "EAAFNsBlN4joBANQO80CWkQhkdRZBPFTGQYSHF2qAKyqwom7ZAJbvV3bqwmNis2ZBv0OoqQZBKp9EFUlS7wWpttsfjZCbY6yZBqjVdi195iZAwWXRfRKVLle5GhlZAkH90d81pNyzHr4zCzj0cl263odWv7WefZANrqc8ZD";
 	private final String USER_AGENT = "Mozilla/5.0";
 	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BulkRead.class);
 
-	@GetMapping("/leads")
-	public String getLeads(HttpServletRequest request) {
+	@GetMapping("/{formId}/leads")
+	public Map<String,Object> getLeads(HttpServletRequest request, @PathVariable("formId") String formId) {
 		ObjectMapper mapper = new ObjectMapper();
+		Map<String,Object> map = new HashMap<String, Object>();
 		try {
 			Enumeration<String> enumeration = request.getParameterNames();
 			Map<String, Object> modelMap = new HashMap<>();
@@ -41,14 +43,21 @@ public class BulkRead {
 				String parameterName = enumeration.nextElement();
 				modelMap.put(parameterName, request.getParameter(parameterName));
 			}
-			log.info("Input query params {}",modelMap);
-			String url = "https://graph.facebook.com/v3.2/277385353205976/leads";
-			URL obj = new URL(url + "?access_token=" + access_token);
+			log.info("Input query params {}", modelMap);
+			log.info("Input path variable {}",formId);
+			String url = "https://graph.facebook.com/v3.2/"+formId+"/leads";
+			StringBuilder inputParams = new StringBuilder();
+			inputParams.append("?access_token=" + access_token);
+			if (modelMap.containsKey("limit")) inputParams.append("&limit="+modelMap.get("limit"));
+			if (modelMap.containsKey("since")) inputParams.append("&since="+modelMap.get("since"));
+			if (modelMap.containsKey("until")) inputParams.append("&until="+modelMap.get("until"));
+			
+			URL obj = new URL(url + inputParams.toString());
 			HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
 			con.setRequestProperty("User-Agent", USER_AGENT);
 
 			int responseCode = con.getResponseCode();
-			log.info("\nSending 'GET' request to URL : {}", url);
+			log.info("\nSending 'GET' request to URL : {}", url + inputParams.toString());
 			log.info("Response Code : {}", responseCode);
 
 			BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
@@ -60,17 +69,27 @@ public class BulkRead {
 			in.close();
 			con.disconnect();
 			System.out.println(content);
-			ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());
-			writer.writeValue(new File("D:/facebookwebhook/leadInfo.json"),
-					mapper.readValue(content.toString(), new TypeReference<Map<String, Object>>() {
-					}));
-			log.info("testkdsglsd");
+			map = mapper.readValue(content.toString(), new TypeReference<Map<String,Object>>(){});
+
+			Map<String,Object> paging = (Map<String, Object>) map.get("paging");
+			if (paging.containsKey("next")) {
+				
+			}
+			/*
+			 * ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());
+			 * writer.writeValue(new File("D:/facebookwebhook/leadInfo.json"),
+			 * mapper.readValue(content.toString(), new TypeReference<Map<String, Object>>()
+			 * { })); log.info("testkdsglsd");
+			 */
+
 		} catch (MalformedURLException e1) {
+			log.error("URL Exception while connecting to service {}",e1.getMessage());
 			e1.printStackTrace();
 		} catch (IOException e) {
+			log.error("IO Exception while connecting to service {}",e.getMessage());
 			e.printStackTrace();
 		}
-		return USER_AGENT;
-
+		return map;
 	}
+	
 }
