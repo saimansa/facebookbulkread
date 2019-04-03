@@ -36,6 +36,10 @@ public class BulkReadController {
 		ObjectMapper mapper = new ObjectMapper();
 		Map<String, Object> map = new HashMap<String, Object>();
 		int limit = 1000;
+		Boolean status = false;
+		Map<String, Object> paging = null;
+		List<Map<String, Object>> data = new ArrayList<>();
+		List<Map<String, Object>> finalData = new ArrayList<>();
 		try {
 			Enumeration<String> enumeration = request.getParameterNames();
 			Map<String, Object> modelMap = new HashMap<>();
@@ -54,32 +58,32 @@ public class BulkReadController {
 			} else {
 				inputParams.append("&limit=" + limit);
 			}
-			//Time based pagination
+			// Time based pagination
 			if (modelMap.containsKey("since"))
 				inputParams.append("&since=" + modelMap.get("since"));
 			if (modelMap.containsKey("until"))
 				inputParams.append("&until=" + modelMap.get("until"));
-			//Cursor based pagination
+			// Cursor based pagination
 			if (modelMap.containsKey("before"))
 				inputParams.append("&before=" + modelMap.get("before"));
 			if (modelMap.containsKey("after"))
 				inputParams.append("&after=" + modelMap.get("after"));
 
-			boolean status = true;
 			String urlpath = url + inputParams.toString();
-			Map<String, Object> paging = null;
-			List<Map<String, Object>> data = new ArrayList<>();
-			List<Map<String, Object>> finalData = new ArrayList<>();
 
 			do {
-				String response = bulkReadService.fetchAllLeads(urlpath);
+				Map<String, String> res = bulkReadService.fetchAllLeads(urlpath);
+				if (res.get("status").equals("false")) {
+					throw new RuntimeException(res.get("error"));
+				}
+				String response = res.get("response");
 				System.out.println("response:" + response);
 				Map<String, Object> mapRes = mapper.readValue(response, new TypeReference<Map<String, Object>>() {
 				});
 
 				paging = (Map<String, Object>) mapRes.get("paging");
 				data = (List<Map<String, Object>>) mapRes.get("data");
-				if (paging.containsKey("next") && data.size()<limit) {
+				if (paging.containsKey("next") && data.size() < limit) {
 					urlpath = (String) paging.get("next");
 					status = true;
 				} else {
@@ -87,16 +91,22 @@ public class BulkReadController {
 				}
 				finalData.addAll(data);
 			} while (status);
-			
-			map.put("data", finalData);
-			map.put("paging", paging);
+
+			status = true;
 
 		} catch (MalformedURLException e1) {
-			log.error("URL Exception while connecting to service {}", e1.getMessage());
-			e1.printStackTrace();
+			log.error(e1.getMessage(), e1);
+			map.put("error", e1.getMessage());
 		} catch (IOException e) {
-			log.error("IO Exception while connecting to service {}", e.getMessage());
-			e.printStackTrace();
+			log.error(e.getMessage(), e);
+			map.put("error", e.getMessage());
+		} catch(Exception ex){
+			log.error(ex.getMessage(), ex);
+			map.put("error", ex.getMessage());
+		}finally {
+			map.put("data", finalData);
+			map.put("paging", paging);
+			map.put("status", status);
 		}
 		return map;
 	}
