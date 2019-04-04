@@ -51,7 +51,12 @@ public class BulkReadController {
 			log.info("Input path variable {}", formId);
 			String url = "https://graph.facebook.com/v3.2/" + formId + "/leads";
 			StringBuilder inputParams = new StringBuilder();
-			inputParams.append("?access_token=" + access_token);
+
+			if (modelMap.containsKey("access_token"))
+				inputParams.append("?access_token=" + modelMap.get("access_token"));
+			else
+				inputParams.append("?access_token=" + access_token);
+
 			if (modelMap.containsKey("limit")) {
 				limit = Integer.parseInt((String) modelMap.get("limit"));
 				inputParams.append("&limit=" + modelMap.get("limit"));
@@ -100,10 +105,10 @@ public class BulkReadController {
 		} catch (IOException e) {
 			log.error(e.getMessage(), e);
 			map.put("error", e.getMessage());
-		} catch(Exception ex){
+		} catch (Exception ex) {
 			log.error(ex.getMessage(), ex);
 			map.put("error", ex.getMessage());
-		}finally {
+		} finally {
 			map.put("data", finalData);
 			map.put("paging", paging);
 			map.put("status", status);
