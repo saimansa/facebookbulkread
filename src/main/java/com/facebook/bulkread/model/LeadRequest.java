@@ -89,11 +89,16 @@ public class LeadRequest {
 	}
 
 	public boolean isNotEmpty(String input) {
-		System.out.println("input:"+input);
 		if (input != null && !input.isEmpty())
 			return true;
 
 		return false;
 	}
-	
+
+	public boolean isEmpty(String input) {
+		if (input != null && !input.isEmpty())
+			return false;
+
+		return true;
+	}
 }
