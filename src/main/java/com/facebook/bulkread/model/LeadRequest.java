@@ -33,6 +33,44 @@ public class LeadRequest {
 		this.limit = limit;
 	}
 
+	public String getSince() {
+		return since;
+	}
+
+	public void setSince(String since) {
+		this.since = since;
+	}
+
+	public String getUntil() {
+		return until;
+	}
+
+	public void setUntil(String until) {
+		this.until = until;
+	}
+
+	public String getBefore() {
+		return before;
+	}
+
+	public void setBefore(String before) {
+		this.before = before;
+	}
+
+	public String getAfter() {
+		return after;
+	}
+
+	public void setAfter(String after) {
+		this.after = after;
+	}
+
+	@Override
+	public String toString() {
+		return "LeadRequest [accessToken=" + accessToken + ", formID=" + formID + ", limit=" + limit + ", since="
+				+ since + ", until=" + until + ", before=" + before + ", after=" + after + "]";
+	}
+
 	public String constructQueryParams() {
 		StringBuilder builder = new StringBuilder();
 
@@ -50,10 +88,12 @@ public class LeadRequest {
 		return builder.toString();
 	}
 
-	private boolean isNotEmpty(String input) {
+	public boolean isNotEmpty(String input) {
+		System.out.println("input:"+input);
 		if (input != null && !input.isEmpty())
 			return true;
 
 		return false;
 	}
+	
 }
