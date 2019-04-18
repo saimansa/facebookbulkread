@@ -3,7 +3,7 @@ package com.facebook.bulkread.model;
 public class LeadRequest {
 	private String accessToken = "EAAFNsBlN4joBANQO80CWkQhkdRZBPFTGQYSHF2qAKyqwom7ZAJbvV3bqwmNis2ZBv0OoqQZBKp9EFUlS7wWpttsfjZCbY6yZBqjVdi195iZAwWXRfRKVLle5GhlZAkH90d81pNyzHr4zCzj0cl263odWv7WefZANrqc8ZD";
 	private String formID;
-	private String limit = "1000";
+	private String limit;
 	private String since;
 	private String until;
 	private String before;
@@ -71,34 +71,4 @@ public class LeadRequest {
 				+ since + ", until=" + until + ", before=" + before + ", after=" + after + "]";
 	}
 
-	public String constructQueryParams() {
-		StringBuilder builder = new StringBuilder();
-
-		builder.append("?access_token=" + this.accessToken);
-		builder.append("&limit=" + this.limit);
-		if (isNotEmpty(this.since))
-			builder.append("&since=" + this.since);
-		if (isNotEmpty(this.until))
-			builder.append("&until=" + this.until);
-		if (isNotEmpty(this.before))
-			builder.append("&before=" + this.before);
-		if (isNotEmpty(this.after))
-			builder.append("&after=" + this.after);
-
-		return builder.toString();
-	}
-
-	public boolean isNotEmpty(String input) {
-		if (input != null && !input.isEmpty())
-			return true;
-
-		return false;
-	}
-
-	public boolean isEmpty(String input) {
-		if (input != null && !input.isEmpty())
-			return false;
-
-		return true;
-	}
 }
