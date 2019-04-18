@@ -1,6 +1,9 @@
 package com.facebook.bulkread.service;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 import com.facebook.bulkread.model.Data;
 import com.facebook.bulkread.model.LeadRequest;
 import com.facebook.bulkread.model.LeadResponse;
+import com.facebook.bulkread.util.Utility;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,30 +28,57 @@ public class BulkReadService {
 	@Autowired
 	RestTemplate restTemplate;
 
+	@Autowired
+	Utility utility;
+
 	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BulkReadService.class);
 	private final String BASEURL = "https://graph.facebook.com/v3.2/";
 
-	public ResponseEntity<LeadResponse> getLeadsByFilter(LeadRequest lead) {
+	public ResponseEntity<LeadResponse> getLeadsByFilter(LeadRequest leadRequest) {
+		List<LeadResponse> listLeadRes = new ArrayList<>();
 		try {
-			log.info("Input request: {}", lead);
-			String url = BASEURL + lead.getFormID() + "/leads" + lead.constructQueryParams();
-			log.info("Graph Request Url : {}", url);
-			LeadResponse leadResponse = restTemplate.getForObject(url, LeadResponse.class);
-
-			String sinceUnixTimestamp = lead.getSince();
-			String untilUnixTimestamp = lead.getUntil();
-
-			if (lead.isEmpty(sinceUnixTimestamp) || lead.isEmpty(untilUnixTimestamp))
-				return new ResponseEntity<LeadResponse>(leadResponse, HttpStatus.OK);
-
-			Data[] leadData = leadResponse.getData();
+			log.info("Input request: {}", leadRequest);
+			String graphEndpoint = BASEURL + leadRequest.getFormID() + "/leads";
+			String limit = leadRequest.getLimit();
+			String sinceUnixTimestamp = leadRequest.getSince();
+			String untilUnixTimestamp = leadRequest.getUntil();
 			List<Data> finalData = new ArrayList<>();
-			for (Data data : Arrays.asList(leadData)) {
-				if (tsToSec8601(data.getCreated_time()) >= Long.parseLong(sinceUnixTimestamp)
-						&& tsToSec8601(data.getCreated_time()) <= Long.parseLong(untilUnixTimestamp))
-					finalData.add(data);
-			}
 
+			if (utility.isEmpty(sinceUnixTimestamp) || utility.isEmpty(untilUnixTimestamp)) {
+				LocalDateTime localDateTime = LocalDateTime.now(ZoneId.of("UTC"));
+				System.out.println(localDateTime);
+				untilUnixTimestamp = Long.toString(localDateTime.toEpochSecond(ZoneOffset.UTC));
+				System.out.println(untilUnixTimestamp);
+				sinceUnixTimestamp = Long.toString(localDateTime.minusDays(1).toEpochSecond(ZoneOffset.UTC));
+				System.out.println(localDateTime.minusDays(1));
+				System.out.println(sinceUnixTimestamp);
+				leadRequest.setSince(sinceUnixTimestamp);
+				leadRequest.setUntil(untilUnixTimestamp);
+				leadRequest.setLimit("");
+			}
+			boolean fetchStatus = true;
+			LeadResponse leadResponse = null;
+			do {
+				String url = graphEndpoint + utility.constructQueryParams(leadRequest, null);
+				log.info("Graph Request Url : {}", url);
+				leadResponse = restTemplate.getForObject(url, LeadResponse.class);
+				log.info("Response body: {}", leadResponse);
+				if (utility.isEmpty(leadResponse.getPaging().getNext()))
+					fetchStatus = false;
+				url = graphEndpoint + utility.constructQueryParams(leadRequest, leadResponse);
+				listLeadRes.add(leadResponse);
+
+			} while (fetchStatus);
+
+			for (LeadResponse response : listLeadRes) {
+				Data[] leadData = response.getData();
+				for (Data data : Arrays.asList(leadData)) {
+					if (tsToSec8601(data.getCreated_time()) >= Long.parseLong(sinceUnixTimestamp)
+							&& tsToSec8601(data.getCreated_time()) <= Long.parseLong(untilUnixTimestamp))
+						finalData.add(data);
+					log.info("Response data: {} ", data);
+				}
+			}
 			leadResponse.setData(finalData.toArray(new Data[0]));
 
 			return new ResponseEntity<LeadResponse>(leadResponse, HttpStatus.OK);
