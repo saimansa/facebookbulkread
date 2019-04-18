@@ -36,36 +36,37 @@ public class BulkReadService {
 
 	public ResponseEntity<LeadResponse> getLeadsByFilter(LeadRequest leadRequest) {
 		List<LeadResponse> listLeadRes = new ArrayList<>();
+		boolean fetchStatus = false;
+		LeadResponse leadResponse = null;
+		boolean isTimestampBased = true;
 		try {
 			log.info("Input request: {}", leadRequest);
 			String graphEndpoint = BASEURL + leadRequest.getFormID() + "/leads";
-			String limit = leadRequest.getLimit();
 			String sinceUnixTimestamp = leadRequest.getSince();
 			String untilUnixTimestamp = leadRequest.getUntil();
 			List<Data> finalData = new ArrayList<>();
 
 			if (utility.isEmpty(sinceUnixTimestamp) || utility.isEmpty(untilUnixTimestamp)) {
 				LocalDateTime localDateTime = LocalDateTime.now(ZoneId.of("UTC"));
-				System.out.println(localDateTime);
+
 				untilUnixTimestamp = Long.toString(localDateTime.toEpochSecond(ZoneOffset.UTC));
-				System.out.println(untilUnixTimestamp);
 				sinceUnixTimestamp = Long.toString(localDateTime.minusDays(1).toEpochSecond(ZoneOffset.UTC));
-				System.out.println(localDateTime.minusDays(1));
-				System.out.println(sinceUnixTimestamp);
+
 				leadRequest.setSince(sinceUnixTimestamp);
 				leadRequest.setUntil(untilUnixTimestamp);
-				leadRequest.setLimit("");
+				isTimestampBased = true;
 			}
-			boolean fetchStatus = true;
-			LeadResponse leadResponse = null;
+			log.info("Input is time based query :{}", isTimestampBased);
 			do {
-				String url = graphEndpoint + utility.constructQueryParams(leadRequest, null);
+				String url = graphEndpoint + utility.constructQueryParams(leadRequest, leadResponse, fetchStatus);
 				log.info("Graph Request Url : {}", url);
 				leadResponse = restTemplate.getForObject(url, LeadResponse.class);
 				log.info("Response body: {}", leadResponse);
 				if (utility.isEmpty(leadResponse.getPaging().getNext()))
 					fetchStatus = false;
-				url = graphEndpoint + utility.constructQueryParams(leadRequest, leadResponse);
+				else if (isTimestampBased)
+					fetchStatus = true;
+
 				listLeadRes.add(leadResponse);
 
 			} while (fetchStatus);

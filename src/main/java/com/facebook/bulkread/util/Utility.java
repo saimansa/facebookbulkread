@@ -8,13 +8,12 @@ import com.facebook.bulkread.model.LeadResponse;
 @Component
 public class Utility {
 
-	public String constructQueryParams(LeadRequest request, LeadResponse response) {
+	public String constructQueryParams(LeadRequest request, LeadResponse response, boolean isCursor) {
 		StringBuilder builder = new StringBuilder();
-		boolean isCursor = false;
+		// pass access token to graph API authentication
 		builder.append("?access_token=" + request.getAccessToken());
 
-		if (isNotEmpty(request.getLimit()))
-			builder.append("&limit=" + request.getLimit());
+		// cursor based filter
 		if (isNotEmpty(request.getBefore())) {
 			builder.append("&before=" + request.getBefore());
 			isCursor = true;
@@ -26,10 +25,15 @@ public class Utility {
 			builder.append("&after=" + request.getAfter());
 			isCursor = true;
 		}
+		// time based filter
 		if (isNotEmpty(request.getSince()) && !isCursor)
 			builder.append("&since=" + request.getSince());
 		if (isNotEmpty(request.getUntil()) && !isCursor)
 			builder.append("&until=" + request.getUntil());
+		
+		// limit filter on graph API
+		if (isNotEmpty(request.getLimit()) && !isCursor)
+			builder.append("&limit=" + request.getLimit());
 
 		return builder.toString();
 	}
