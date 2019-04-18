@@ -54,7 +54,7 @@ public class BulkReadService {
 
 				leadRequest.setSince(sinceUnixTimestamp);
 				leadRequest.setUntil(untilUnixTimestamp);
-				isTimestampBased = true;
+				isTimestampBased = false;
 			}
 			log.info("Input is time based query :{}", isTimestampBased);
 			do {
