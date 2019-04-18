@@ -64,7 +64,7 @@ public class BulkReadService {
 				log.info("Response body: {}", leadResponse);
 				if (utility.isEmpty(leadResponse.getPaging().getNext()))
 					fetchStatus = false;
-				else if (isTimestampBased)
+				else if (!isTimestampBased)
 					fetchStatus = true;
 
 				listLeadRes.add(leadResponse);
